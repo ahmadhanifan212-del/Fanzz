@@ -1,0 +1,128 @@
+-- Anime Dice | Hide Base + Trade Header
+-- People + Leaderboard | Delta Executor
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+if not LocalPlayer then
+    warn("LocalPlayer tidak ditemukan!")
+    return
+end
+
+-- ==========================================
+-- 1. HIDE USERNAME PEOPLE + LEADERBOARD
+-- ==========================================
+
+local function hideName(obj)
+    if not obj:IsA("TextLabel") then
+        return
+    end
+
+    local target =
+        obj.Name == "DisplayNameLabel"
+        or obj.Name == "NameLabel"
+        or obj.Name == "PlayerName"
+
+    if target
+        and obj.Text:gsub("^@", ""):lower()
+            == LocalPlayer.Name:lower() then
+        obj.Text = ""
+    end
+end
+
+local function watch(root)
+    -- Bersihkan username yang sudah ada
+    for _, obj in ipairs(root:GetDescendants()) do
+        pcall(hideName, obj)
+    end
+
+    -- Pantau UI baru
+    root.DescendantAdded:Connect(function(obj)
+        task.defer(function()
+            pcall(hideName, obj)
+
+            if obj:IsA("TextLabel") then
+                obj:GetPropertyChangedSignal("Text"):Connect(function()
+                    pcall(hideName, obj)
+                end)
+            end
+        end)
+    end)
+
+    -- Pantau perubahan teks UI yang sudah ada
+    for _, obj in ipairs(root:GetDescendants()) do
+        if obj:IsA("TextLabel") then
+            obj:GetPropertyChangedSignal("Text"):Connect(function()
+                pcall(hideName, obj)
+            end)
+        end
+    end
+end
+
+-- ==========================================
+-- 2. HIDE USERNAME DI BASE ANIME DICE
+-- ==========================================
+
+local function hideBaseNames()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BillboardGui") and obj.Enabled then
+            for _, child in ipairs(obj:GetDescendants()) do
+                if child:IsA("TextLabel")
+                    and Players:FindFirstChild(child.Text) then
+
+                    obj.Enabled = false
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- ==========================================
+-- 3. HIDE HEADER TRADE ANIME DICE
+-- ==========================================
+
+local function hideTradeNames()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+
+    local root = playerGui:FindFirstChild("Root")
+    if not root then return end
+
+    local trading = root:FindFirstChild("Trading")
+    if not trading then return end
+
+    local tradeScreen = trading:FindFirstChild("TradeScreen")
+    if not tradeScreen then return end
+
+    local clientTitle = tradeScreen:FindFirstChild("ClientTitle")
+    local otherTitle = tradeScreen:FindFirstChild("OtherTitle")
+
+    if clientTitle and clientTitle:IsA("TextLabel") then
+        clientTitle.Text = ""
+    end
+
+    if otherTitle and otherTitle:IsA("TextLabel") then
+        otherTitle.Text = ""
+    end
+end
+
+-- ==========================================
+-- 4. AKTIFKAN SEMUA FITUR
+-- ==========================================
+
+pcall(function()
+    watch(CoreGui)
+end)
+
+task.spawn(function()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    watch(playerGui)
+end)
+
+-- Anime Dice: periksa ulang base dan trade
+while task.wait(1) do
+    pcall(hideBaseNames)
+    pcall(hideTradeNames)
+end
